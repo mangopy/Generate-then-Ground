@@ -37,6 +37,7 @@ You can also directly set your base url as:
 BASE_URL=[OpenAI base url] python run.py
 ```
 
+
 2. Download the retrieval resource
 
 We provide several retrieval strategies, such as oracle (directly give ground truth doc), simulation (mix ground truth doc with offline-retrieved docs) and online retrieval.
