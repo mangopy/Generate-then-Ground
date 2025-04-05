@@ -23,7 +23,6 @@ def run(process_ids,func, data, args):
         results.extend(res)
     return results
 
-
 def _run(rank, data, args):
     result = []
     for line in data:
