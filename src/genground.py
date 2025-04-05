@@ -1,15 +1,14 @@
 import copy
 import random
 from typing import List, Dict
-from src.knowledge import Knowledge
+from src.knowledge import Knowledge, document_retrieval
 from src.instruct import *
-from utilze.metrics import f1_score, single_f1_score
 from openai import OpenAI
 import json
 
 # base_url = os.environ['BASE_URL']
 api_key = [
-    'sk-ip2g65aOcppvjPBB7UDGVcciaa8jwd8yxUYHlJZOORqIHpV7'
+    'sk-LyjNjNUGmBs0xTftABbAq9m0WDDCQPKuLM6y3Y4tVHQMQCQK'
 ]
 
 def get_from_openai(model: str,
@@ -52,7 +51,7 @@ class GenGround:
             batch_doc_size: int=3,
             corpus: str = 'wiki'
     ):
-        print(f'the foundation model is {model}')
+        # print(f'the foundation model is {model}')
         self.model = model
         self.retrieval = retrieval
         self.corpus = corpus
@@ -64,86 +63,58 @@ class GenGround:
     def name(self):
         return 'GenGround'
 
-    def grounding(self, q, answer, docs, batch=3):
-
-        def _revise(model_name, q, answer, batch_doc):
-            prompt = f"""You will be provided with {len(batch_doc)} documents delimited by triple quotes and a question.
-Your task is to edit the candidate answer using only the provided document and to cite the passage(s) of used to edit the candidate answer.
-Your answers need to be short and precise (less than 20 words). Do not introduce information that is not relevant to the question."""
-
-            k = '\n'.join(batch_doc)
-
-            user = """“”"{knowledge}“”"
-Question: {q}
-Candidate Answer: {ans}
-Your output should be JSON format: {{"answer": "<the edited answer>","citation":"<cite the passage used to edit the candidate answer>"}}""".format(knowledge=k, q=q, ans=answer)
-
-            for i in range(0, 3):
-                response = get_from_openai(
-                    model=model_name,
-                    messages=[{"role": "system", 'content': prompt},
-                              {"role": "user", 'content': user}],
-                    temp=0,
-                    stop=[]
-                )
-                try:
-                    _answer = json.loads(response)['answer']
-                    return _answer
-                except:
-                    print('json mode parse error...')
-
-            return answer
-
-        def _batch_grounding(model_name, q, batch_doc):
+    def grounding(self, question, answer, docs, batch_size=3):
+        def _batch_grounding(model_name, q, a, docs):
             # craft this prompt based on the openAI prompt guidance: https://platform.openai.com/docs/guides/prompt-engineering/six-strategies-for-getting-better-results
-            prompt = """You will be provided with {n} documents delimited by triple quotes and a question.
-Your task is to answer the question using only the provided document and to cite the passage(s) of the document used to answer the question.
-Please be careful:
-1. If the document does not contain the information needed to answer this question then simply write `Insufficient information`.
-2. If an answer to the question is provided, it must be annotated with a citation. Use the following format to cite relevant passages ({{"citation": …}}).""".format(n=len(batch_doc))
-            user = """“”"{doc}“”"\n\nQuestion: {question}""".format(doc='\n'.join(batch_doc), question=q)
+            prompt = """Please help me to revise the factual error in my answer to a question by referring the relevant evidence"""
+            input_docs = """You are provided with {n} documents from Wikipedia; each document is identified with a numeric identifier, e.g., [1] and [2]. You should read these document carefully.         
+Starting below, please cite relevant evidence from the documents to check my answer to a question and revise my answer into a correct one if it is wrong. You should first give the evidence your cite and then give the answer; If you find no evidence can be used to check my answer, please retain my answer. The answer is a short span.
+Here are some examples you should follow to formate your output.
 
-            for i in range(0, 3):
-                answer = get_from_openai(
-                    model=model_name,
-                    messages=[{"role": "system", 'content': prompt}, {"role": "user", 'content': user}],
-                    stop=[],
-                    temp=0,
-                )
-                try:
-                    assert "citation" in answer or "not mentioned" in answer.lower() or 'not contain'
-                    if "citation" in answer:
-                        idx = answer.index("citation") + len("citation")
-                        evidence = answer[idx:].replace('"', '').replace("({", '').replace("})", '').replace(":", '').strip()
-                        score = single_f1_score(evidence, batch_doc)
-                        return [answer[:idx]], [batch_doc[score.index(max(score))]]
-                except:
-                    print('citation grounding format error...')
+Here is a question: What is the favorite color of the author? And my answer is: Blue.
+Your output: No relevant evidence found in the documents. I will retain the original answer
+Answer: Blue.
 
-             # "insufficient information" in answer.lower():
-            return [], []
+Here is a question: Who discovered penicillin? And my answer is: Marie Curie.
+Citation: [1] indicates that "Fleming discovered penicillin in 1928 when he noticed that a mold called Penicillium notatum killed bacteria in his Petri dishes"
+Answer: Alexander Fleming"""
+            receive_doc = "Sure, please send me your question and answer. I will check whether the answer is correct based on your documents."
+
+            user = """Document:
+{docs}
+
+Here is a question: {question}? And my answer is: {answer}
+Citation: """
+
+            _docs = '\n'.join([f'[{i}] {d}' for i, d in enumerate(docs, 1)])
+            messages = [
+                {"role": "system", 'content': prompt},
+                {"role": "user", 'content': input_docs.format(n=len(docs))},
+                {"role": "assistant", 'content': receive_doc},
+                {"role": "user", 'content': user.format(question=q, answer=a, docs=_docs)},
+            ]
+            response = get_from_openai(model=model_name, messages=messages,temp=0.5, stop=[])
+            try:
+                citation, _a = response.split('Answer:')
+            except:
+                citation = response.split('\n')[0].strip()
+                messages[-1]['content'] += f'{citation}\nAnswer: '
+                _a = get_from_openai(model=model_name, messages=messages,temp=0.5, stop=[])
+            return citation, _a
 
         tmp = copy.deepcopy(docs)
-
         # queue to iteratively append useful evidence and filter noise doc
-        while len(tmp) > batch:
-            _, doc = _batch_grounding(self.model, q, batch_doc=tmp[:batch])
-            # discard the early stopping to find more reliable knowledge
-            # if len(doc)!=0:
-            #     tmp = doc
-            #     break
-            tmp = tmp[batch:] + doc
-
-        if len(tmp)==0:
-            return answer
-        _answer = _revise(self.model, q, answer, tmp)
-        return _answer
+        for i in range(0, len(docs), batch_size):
+            citation, _answer = _batch_grounding(self.model, question, answer,tmp[i:i+batch_size])
+            if any([f"[{i}]" in citation for i in range(batch_size)]):
+                return _answer
+        return answer
 
     def noramlize(self, s):
-        eee = ['[1]', '[2]', '[3]', '[4]', '[5]', '()', '\n', '\t', '[', ']', 'FINISH']
+        eee = ['[1]', '[2]', '[3]', '[4]', '[5]', '()', '\n', '\t', '[', ']', 'FINISH', 'finish', 'Finish']
         for e in eee:
             s = s.replace(e, '')
-        return s
+        return s.strip()
 
     def generate(self, line, corpus='psgs'):
         print(line['query'])
@@ -157,42 +128,44 @@ Please be careful:
             response = get_from_openai(
                 model=self.model,
                 messages=[{'role': 'system', 'content': GENERATION_SYSTEM},
-                          {"role": "user", "content": prompt + f'Thought {i}: '}],
-                stop=['Thought'],
-                temp=0
+                          {"role": "user", "content": prompt + f'<Thought> '}],
+                stop=['<Thought>'],
+                temp=0.5
             )
             try:
                 # parse the LLM response
-                q, answer = [line.strip() for line in response.split('Answer: ')]
+                q, answer = [line.strip() for line in response.split('<Answer>')]
             except:
                 # post-processing if the response format is unaligned （See ReAct https://github.com/ysymyth/ReAct/blob/master/hotpotqa.ipynb)
                 q = response.strip().split('\n')[0]
                 answer = get_from_openai(
                     model=self.model,
                     messages=[{'role': 'system', 'content': GENERATION_SYSTEM},
-                              {"role": "user", "content": prompt + f'Thought {i}: {q}\nAnswer: '}],
+                              {"role": "user", "content": prompt + f'<Thought> {q}\n<Answer>'}],
                     stop=['\n'],
                     temp=0,
                 )
                 answer = answer.strip().replace('\n', '')
 
             #  `Finish` is a pre-defined signal in prompt to indicate finish the question
-            if 'FINISH' in answer:
+            if 'finish' in answer.lower():
                 answer = self.noramlize(answer)
-                prompt += f"Thought: {q}\nAnswer: {answer}\n"
+                prompt += f"<Thought> {q}\n<Answer> {answer}\n"
                 return prompt, answer
 
             q = self.noramlize(q)
             answer = self.noramlize(answer)
+            print(f"<Thought> {q} ({answer})")
 
             # retrieve document for knowledge augmentation
-            raw_doc = Knowledge.get_knowledge(line, mode=self.retrieval, corpus=self.corpus, query=q, k=self.n_docs)
+            # raw_doc = Knowledge.get_knowledge(line, mode=self.retrieval, corpus=self.corpus, query=q, k=self.n_docs)
+            raw_doc = document_retrieval(query=q, k=9)
 
             # sub-question, immediate answer -> calibrated answer
-            _answer = self.grounding(q=q, answer=answer, docs=raw_doc, batch=self.batch_doc_size)
-            traj = f"Thought {i}: {q}\nAnswer {i}: {_answer}\n"
-            print(traj)
-            prompt += traj
+            _answer = self.grounding(question=q, answer=answer, docs=raw_doc, batch_size=self.batch_doc_size)
+            _answer = self.noramlize(_answer)
+            prompt += f"<Thought> {q}\n<Answer> {_answer}\n"
+            print(f"<Answer> {_answer}")
         return 'NO ANSWER'
 
 

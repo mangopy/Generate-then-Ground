@@ -5,6 +5,7 @@ import multiprocessing as mp
 import math
 from tqdm import tqdm
 from src.genground import GenGround
+from utilze.metrics import eval_f1, eval_em, eval_acc
 
 def run(process_ids,func, data, args):
     pool = mp.Pool(processes=len(process_ids))
@@ -28,27 +29,49 @@ def _run(rank, data, args):
     for line in data:
         if 'query' not in line and 'question' in line:
             line['query'] = line.pop('question')
-    for line in tqdm(data):
+    for i, line in enumerate(tqdm(data[60:100])):
         model = GenGround(model=args.model_name,
                           retrieval=args.retrieval,
                           batch_doc_size=args.batch_doc_size,
                           corpus=args.corpus,
                           n_docs=args.n_docs)
-        # try:
-        traj, res = model.generate(line, corpus='hotpot')
-        line['model_response'] = res
-        line['traj'] = traj
-        print(res, '|||', line['answer'])
-        result.append(line)
-        # except:
-        #     print('==================')
+        try:
+            traj, res = model.generate(line, corpus='hotpot')
+            line['model_response'] = res
+            line['traj'] = traj
+            print(res, '|||', line['answer'])
+            result.append(line)
+            json.dump(line, open(f'hotpot-{i}.json'.format(rank), 'w'))
+        except:
+            print('==================')
     return rank, result
 
+def evaluate(output_folder):
+    def _evaluate(preds, answers):
+        score = {}
+        score['f1'] = eval_f1(preds, [[e] if type(e) == str else e for e in answers])
+        score['em'] = eval_em(preds, [[e] if type(e) == str else e for e in answers])
+        score['acc'] = eval_acc(preds, [[e] if type(e) == str else e for e in answers])
+        print(score)
+        return score
+    import glob
+    files = glob.glob(output_folder + '/*.json')
+    answers, predicts = [], []
+    for file in files:
+        try:
+            line = json.load(open(file, 'r'))
+            answers.append(line['answer'])
+            predicts.append(line['model_response'])
+        except:
+            pass
+    print(len(answers), len(predicts))
+    print(_evaluate(predicts, answers))
 
+# evaluate('./hotpot')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data_path", type=str, default='../dataset/hotpot_distractor_validation.json',
+    parser.add_argument("--data_path", type=str, default='./dataset/hotpot_distractor_validation.json',
                         help="Path to dataset (.json/.jsonl file)")
     parser.add_argument("--model_name", type=str,default='gpt-3.5-turbo-16k',
                         help="the model name")

@@ -64,42 +64,42 @@ Answer: Ben Affleck plays Fred O'Bannion in "Dazed and Confused"
 Thought: **Ben Affleck** is the screenwriter of Good Will Hunting. Ben Affleck plays **Fred O'Bannion** in `Dazed and Confused`.
 Answer: FINISH[Fred O'Bannion]""",
     "hotpot":"""Question: Which magazine was started first, Arthur's Magazine or First for Women?
-Thought 1: First, I should ask "When Arthur's Magazine started?"
-Answer 1: Arthur's Magazine was an American literary periodical published in Philadelphia, which started in **19th (1844)**.
-Thought 2: Then, I should ask "When First for Women started?"
-Answer 2: "First for Women" is a well-known women's magazine that covers topics such as health, beauty, fitness, food, and lifestyle. It started in **1989**.
-Thought 3: Which one started first?
-Answer 3: Finish[Arthur's Magazine
+<Thought> When Arthur's Magazine started?
+<Answer> Arthur's Magazine was an American literary periodical published in Philadelphia, which started in **19th (1844)**.
+<Thought> When First for Women started?
+<Answer> "First for Women" is a well-known women's magazine that covers topics such as health, beauty, fitness, food, and lifestyle. It started in **1989**.
+<Thought> Which one started first?
+<Answer> Finish[Arthur's Magazine]
 
 Question: Who was the captain of the only battleship to provide gunfire support during the Vietnam War?
-Thought 1: Who was the captain of the battleship that provided gunfire support during the Vietnam War?
-Answer 1: Rear Adm. J. (October 23, 1924 – November 4, 2007) was notable as the captain of the battleship USS "New Jersey" during that ship's deployment to the Vietnam War in 1968. 
-Thought 2: I have got all the information. And **Rear Adm. J.** is the captain providing gunfire support during the Vietnam War?`
+<Thought> Who was the captain of the battleship that provided gunfire support during the Vietnam War?
+<Answer> Rear Adm. J. (October 23, 1924 – November 4, 2007) was notable as the captain of the battleship USS "New Jersey" during that ship's deployment to the Vietnam War in 1968. 
+<Thought> I have got all the information. And **Rear Adm. J.** is the captain providing gunfire support during the Vietnam War?`
 Answer 2: FINISH[Rear Adm. J.]
 
 Question: How old is the female main protagonist of Catching Fire? 
-Thought 1:  What is the Catching Fire?
-Answer 1: Catching Fire is the second book in "The Hunger Games trilogy" written by Suzanne Collins.  It is written in the voice of **Katniss Everdeen**,
-Thought 2: Katniss Everdeen is the protagonist of Catching Fire. How old is Katniss Everdeen in Catching Fire book?
-Answer 2: Katniss Everdeen in Catching Fire book is **16 years old**
-Thought 3: FireKatniss Everdeen, the female main protagonist of Catching, is FireKatniss Everdeen and she is **16** years old.
-Answer 3: FINISH[16]
+<Thought> What is the Catching Fire?
+<Answer> Catching Fire is the second book in "The Hunger Games trilogy" written by Suzanne Collins.  It is written in the voice of **Katniss Everdeen**,
+<Thought> How old is Katniss Everdeen in Catching Fire book?
+<Answer> Katniss Everdeen in Catching Fire book is **16 years old**
+<Thought> FireKatniss Everdeen, the female main protagonist of Catching, is FireKatniss Everdeen and she is **16** years old.
+<Answer> FINISH[16]
 
 Question: What is one of the stars of The Newcomers known for?
-Thought 1: Who are the stars in Newcomers?
-Answer 1: **Chris Evans** is one of the stars in the Newcomers.
-Thought 2: Chris Evans is one of the star in The Newcomers. What is the Chris Evans known for?
-Answer 2: Chris Evans is known for **superhero roles as the Marvel Comics**
-Thought 3: I have got all the information. Chris Evans is a star in Newcomers, who is known for **superhero roles as the Marvel Comics**
-Answer 3: FINISH]Superhero roles as the Marvel Comics]
+<Thought> Who are the stars in Newcomers?
+<Answer> **Chris Evans** is one of the stars in the Newcomers.
+<Thought> What is the Chris Evans known for?
+<Answer> Chris Evans is known for **superhero roles as the Marvel Comics**
+<Thought> I have got all the information. Chris Evans is a star in Newcomers, who is known for **superhero roles as the Marvel Comics**
+<Answer> FINISH[Superhero roles as the Marvel Comics]
 
 Question: Billy Preston is an American college basketball player for a team that competes in what?
-Thought 1: Billy Preston is an American college basketball player. What does Billy Preston play for?
-Answer 1: Billy Preston is an American college basketball player for the **Kansas Jayhawks**.
-Thought 2: Kansas Jayhawks is an American college basketbal team. What does the Kansas Jayhawks compete for?
-Answer 2: Kansas Jayhawks competes for the **Big 12 Conference**
-Thought 3: I have got all the information. Billy Preston play for Kansas Jayhawks, and Kansas Jayhawks competes for the **Big 12 Conference**
-Answer 3: FINISH[The Big 12 Conference]""",
+<Thought> Billy Preston is an American college basketball player. What does Billy Preston play for?
+<Answer> Billy Preston is an American college basketball player for the **Kansas Jayhawks**.
+<Thought> What does the Kansas Jayhawks compete for?
+<Answer> Kansas Jayhawks competes for the **Big 12 Conference**
+<Thought> I have got all the information. Billy Preston play for Kansas Jayhawks, and Kansas Jayhawks competes for the **Big 12 Conference**
+<Answer> FINISH[The Big 12 Conference]""",
 
 'multihotpot1':"""Question: Are North Marion High School (Oregon) and Seoul High School both located in the same country?
 Thought: Which country is North Marion High School (Oregon) located in?
@@ -169,28 +169,21 @@ Thought: Poker In Bed's director (die in 10 September 2016) earlier than the dir
 Answer: FINISH[The Machine To Kill Bad People]"""
 }
 
-GENERATION_SYSTEM="""Let's think step by step to answer the question. You need to decompose a complex question into several sub-questions and answer them step by step until get the final answer."""
+GENERATION_SYSTEM="""Given an input query, please think step by step through an iterative self-ask process."""
+#
+GENERATION_USER=""""You need to decompose a complex question into several sub-questions step by step and give an answer to each sub-query, until finishing it with a final answer.
+Specifically, please take care of your output format:
+1. Each decomposed sub-query should start with a <Thought>.
+2. Each answer should start with a <Answer>.
+3. The final answer should be wrapped with FINISH[...].
 
-GENERATION_USER=""""Please answer the question step by step by interleaving Thought and Answer.
-- Thought: reason about the current situation and formulate a sub-question. Your Thought process should aim to formulate as simple and specific a question as possible, which should include a clear description of the key entities’ features.
-- Answer:  answer the sub-question proposed in the Thought step.
 
-Starting below, you must follow the following format:
-Question: a complex question
-Thought 1: The first sub-question
-Answer 1: answer the first sub-question
-... (the Thought and Answer steps can repeat N times)
-Thought n: the final thought
-Answer n: FINISH[your final answer]
 
-Note:
-1. It is better NOT TO use pronouns in Answer and Thought step, but to use the corresponding results obtained previously. For example, instead of “What is the most popular movie directed by this person”, you should output “Get the most popular movie directed by Martin Scorsese”.
-2. Your final answer should be an entity, e.g., a date, place name, and person name. You should always bold the key information with **.
-3. You should always give the answer your trust most despite not knowing it exactly. Try to avoid giving "I do not know'.
-
-Here are some examples:
+Here are some examples, and you should follow the same format:
 
 {icl_example}
+
+Starting below, please complete the following question answering trajectory following the above format,
 
 Question: {query}
 """

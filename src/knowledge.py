@@ -3,6 +3,19 @@ import requests
 import json
 from tqdm import tqdm
 
+api_search = "http://10.96.202.234:8893"
+
+def document_retrieval(query, k=20):
+    url = f'{api_search}/api/search?query={query}&k={k}'
+    response = requests.get(url)
+    res = response.json()
+    knowledge = []
+    for doc in res['topk']:
+        text = doc['text'][doc['text'].index('|') + 1:].replace('"','').strip()
+        title = doc['text'][:doc['text'].index('|')].replace('"','').strip()
+        knowledge.append(f"Title: {title}. Content: {text}")
+    return knowledge
+
 class Knowledge:
     @staticmethod
     def get_knowledge(example, mode='colbert',query='',corpus='hotpot',k=10):
