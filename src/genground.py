@@ -1,7 +1,7 @@
 import copy
 import random
 from typing import List, Dict
-from src.knowledge import Knowledge, document_retrieval
+from src.knowledge import document_retrieval
 from src.instruct import *
 from openai import OpenAI
 import json

@@ -14,7 +14,19 @@ from nltk import word_tokenize
 import torch.multiprocessing as mp
 import re
 import string
+import warnings
+import functools
 
+def deprecated(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        warnings.warn(
+            f"Function '{func.__name__}' is deprecated and will be removed in a future version.",
+            category=DeprecationWarning,
+            stacklevel=2
+        )
+        return func(*args, **kwargs)
+    return wrapper
 
 def normalize_answer(s):
     def remove_articles(text):

@@ -2,6 +2,7 @@ import random
 import requests
 import json
 from tqdm import tqdm
+from utilze.data import deprecated
 
 api_search = "http://10.96.202.234:8893"
 
@@ -16,6 +17,8 @@ def document_retrieval(query, k=20):
         knowledge.append(f"Title: {title}. Content: {text}")
     return knowledge
 
+# This search class has been deprecated
+@deprecated
 class Knowledge:
     @staticmethod
     def get_knowledge(example, mode='colbert',query='',corpus='hotpot',k=10):
