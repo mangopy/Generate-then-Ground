@@ -7,8 +7,8 @@ Code for in Generate-then-Ground Retrieval-augmented Generation for Multi-hop Qu
 This project aims to explore a new Retrieval-augmentation Generation (RAG) method named Generate-then-Ground (GenGround). 
 GenGround integrate the `parametric knowledge` of LLMs such as ChatGPT and GPT-4 and external knowledge from `retrieved document`.
 <p align="center">
-  <img src="./assets/intro.png" alt="Intro" height="250">
-  <img src="./assets/method.png" alt="Method" height="250">
+  <img src="./assets/intro.png" alt="Intro" height="300">
+  <img src="./assets/method.png" alt="Method" height="300">
 </p>
 
 # News
